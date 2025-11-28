@@ -17,6 +17,7 @@ def ponia(
     query: str,
     model: str = "gpt-4o-mini",
     api_key: Optional[str] = None,
+    append_prompt: Optional[str] = None,
     verbose: bool = False,
     raw: bool = False
 ) -> str:
@@ -64,7 +65,7 @@ def ponia(
         >>> print(result)
         {'total_rows': 3}
     """
-    # Obtener API key
+    # Get API key
     api_key = api_key or os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ValueError(
@@ -74,12 +75,18 @@ def ponia(
     
     client = OpenAI(api_key=api_key)
     
+    # If append_prompt is provided, add it to the System prompt
+    if append_prompt:
+        system_prompt = SYSTEM_PROMPT + "\n\n" + append_prompt
+    else:
+        system_prompt = SYSTEM_PROMPT
+    
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": query}
     ]
     
-    # Primera llamada: obtener function calls
+    # First call: get function calls
     response = client.chat.completions.create(
         model=model,
         messages=messages,
@@ -89,15 +96,15 @@ def ponia(
     
     response_message = response.choices[0].message
 
-    # Si hay contenido de texto (pensamiento), mostrarlo en verbose
+    # If there is text content (thinking), show it in verbose
     if verbose and response_message.content:
         print(f"\n{response_message.content}\n")
 
-    # Si no hay tool calls, retornar respuesta directa
+    # If there are no tool calls, return direct response
     if not response_message.tool_calls:
         return response_message.content or "Could not process the query."
 
-    # Procesar tool calls
+    # Process tool calls
     messages.append(response_message)
 
     raw_results = []
@@ -109,11 +116,11 @@ def ponia(
         if verbose:
             print(f"Calling: {function_name}({function_args})")
 
-        # Ejecutar función localmente
+        # Execute function locally
         if function_name in FUNCTIONS_REGISTRY:
             try:
                 result = FUNCTIONS_REGISTRY[function_name](df, function_args)
-                # Convertir valores numpy/pandas a tipos Python nativos
+                # Convert numpy/pandas values to native Python types
                 result = _serialize_result(result)
             except Exception as e:
                 result = {"error": str(e)}
@@ -125,7 +132,7 @@ def ponia(
 
         raw_results.append({"function": function_name, "args": function_args, "result": result})
 
-        # Agregar resultado al contexto
+        # Add result to context
         messages.append({
             "role": "tool",
             "tool_call_id": tool_call.id,
@@ -138,7 +145,7 @@ def ponia(
             return raw_results[0]["result"]
         return raw_results
     
-    # Segunda llamada: obtener respuesta final
+    # Second call: get final response
     final_response = client.chat.completions.create(
         model=model,
         messages=messages
