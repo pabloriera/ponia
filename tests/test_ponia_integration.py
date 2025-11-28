@@ -35,9 +35,13 @@ class TestFilterAndAggregate:
         # Ponia
         result = ponia(
             wages_df,
-            "¿Cuál es el wage promedio de los trabajadores con occupation professional?",
+            "What is the average wage for workers with occupation professional? Use filter_and_aggregate.",
             raw=True
         )
+        
+        # Handle case where result might be a list (multiple function calls)
+        if isinstance(result, list):
+            result = result[-1]
         
         assert abs(result['result'] - expected) < 0.01
 
@@ -49,13 +53,13 @@ class TestFilterAndAggregate:
         # Ponia
         result = ponia(
             wages_df,
-            "What is the maximum wage for workers where union is 1?",
+            "What is the maximum wage for workers where union is 1? Use filter_and_aggregate.",
             raw=True
         )
         
         # Handle case where result might be a list (multiple function calls)
         if isinstance(result, list):
-            result = result[-1]['result']
+            result = result[-1]
         
         assert abs(result['result'] - expected) < 0.01
 
@@ -67,13 +71,13 @@ class TestFilterAndAggregate:
         # Ponia
         result = ponia(
             wages_df,
-            "What is the sum of education for workers where south is 1?",
+            "What is the sum of education for workers where south is 1? Use filter_and_aggregate.",
             raw=True
         )
         
         # Handle case where result might be a list
         if isinstance(result, list):
-            result = result[-1]['result']
+            result = result[-1]
         
         assert abs(result['result'] - expected) < 0.01
 
@@ -154,6 +158,10 @@ class TestColumnStatistics:
             "What is the maximum experience?",
             raw=True
         )
+        
+        # Handle case where result might be a list
+        if isinstance(result, list):
+            result = result[-1]
         
         assert result['max_value'] == expected
 

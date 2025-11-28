@@ -184,7 +184,7 @@ class TestGroupFunctions:
             "agg_column": "total_bill",
             "agg_func": "sum"
         })
-        expected = tips.groupby("sex")["total_bill"].sum().to_dict()
+        expected = tips.groupby("sex", observed=True)["total_bill"].sum().to_dict()
         for key in expected:
             assert abs(result["result"][key] - expected[key]) < 0.01
 

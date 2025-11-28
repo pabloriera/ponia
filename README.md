@@ -2,56 +2,62 @@
 
 Query pandas DataFrames with natural language using OpenAI function calling.
 
-## Instalación
+## Installation
 
 ```bash
 pip install -e .
 ```
 
-## Uso
+## Usage
 
 ```python
 import pandas as pd
 from ponia import ponia
 
-# Configura tu API key como variable de entorno
-# export OPENAI_API_KEY="tu-api-key"
+# Set your API key as environment variable
+# export OPENAI_API_KEY="your-api-key"
 
 df = pd.DataFrame({
-    'producto': ['manzana', 'banana', 'naranja'],
-    'lunes': [10, 15, 8],
-    'martes': [12, 18, 9],
-    'miercoles': [8, 20, 11]
+    'product': ['apple', 'banana', 'orange'],
+    'monday': [10, 15, 8],
+    'tuesday': [12, 18, 9],
+    'wednesday': [8, 20, 11]
 })
 
-# Hacer consultas en lenguaje natural
-respuesta = ponia(df, "¿Qué columna tiene el valor más grande?")
-print(respuesta)
-# "La columna 'miercoles' tiene el valor más grande, el cual es 20..."
+# Query in natural language
+answer = ponia(df, "Which column has the largest value?")
+print(answer)
+# "The column 'wednesday' has the largest value, which is 20..."
 
-respuesta = ponia(df, "¿Cuál es el promedio de ventas del lunes?")
-print(respuesta)
-# "El promedio de la columna 'lunes' es 11.0"
+answer = ponia(df, "What is the average of monday sales?")
+print(answer)
+# "The average of column 'monday' is 11.0"
+
+# Get raw JSON result instead of natural language
+result = ponia(df, "What is the max value?", raw=True)
+print(result)
+# {'value': 20, 'column': 'wednesday', 'row': 1}
 ```
 
-## Características
+## Features
 
-- **Zero data leakage**: Los datos nunca se envían a OpenAI, solo la pregunta
-- **Sin eval()**: No ejecuta código generado por IA, solo funciones predefinidas
-- **Minimal**: Dependencias mínimas (pandas, openai)
-- **Extensible**: Fácil de agregar nuevas funciones
+- **Zero data leakage**: Data is never sent to OpenAI, only the question
+- **No eval()**: Does not execute AI-generated code, only predefined functions
+- **Minimal**: Minimal dependencies (pandas, openai)
+- **Extensible**: Easy to add new functions
 
-## Funciones disponibles
+## Available Functions
 
-- `find_max_value_location` - Valor máximo global y ubicación
-- `find_min_value_location` - Valor mínimo global y ubicación
-- `get_column_max/min/sum/mean/median/std` - Estadísticas por columna
-- `count_rows/columns/unique` - Conteos
-- `filter_by_value/comparison` - Filtrado de filas
-- `group_aggregate` - Agrupación y agregación
-- `get_correlation` - Correlación entre columnas
-- `get_top_n_rows/bottom_n_rows` - Top/bottom N filas
-- Y más...
+- `find_max_value_location` - Global max value and location
+- `find_min_value_location` - Global min value and location
+- `get_column_max/min/sum/mean/median/std` - Column statistics
+- `count_rows/columns/unique` - Counts
+- `filter_by_value/comparison` - Row filtering
+- `filter_and_aggregate` - Filter then aggregate (e.g., "average salary for engineers")
+- `group_aggregate` - Group by and aggregate
+- `get_correlation` - Correlation between columns
+- `get_top_n_rows/bottom_n_rows` - Top/bottom N rows
+- And more...
 
 ## Tests
 

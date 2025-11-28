@@ -404,9 +404,9 @@ def group_aggregate(df: pd.DataFrame, params: dict) -> dict:
         return {"error": f"Column '{agg_column}' not found"}
 
     if agg_func == "count":
-        result = df.groupby(group_by).size().to_dict()
+        result = df.groupby(group_by, observed=True).size().to_dict()
     else:
-        result = df.groupby(group_by)[agg_column].agg(agg_func).to_dict()
+        result = df.groupby(group_by, observed=True)[agg_column].agg(agg_func).to_dict()
 
     return {
         "group_by": group_by,
