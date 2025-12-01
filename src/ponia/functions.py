@@ -736,6 +736,135 @@ def filter_and_aggregate(df: pd.DataFrame, params: dict) -> dict:
     }
 
 
+def filter_multiple_conditions(df: pd.DataFrame, params: dict) -> dict:
+    """Filter rows using multiple AND conditions.
+
+    Supports both equality and comparison conditions on different columns.
+    All conditions must be satisfied (AND logic).
+
+    Args:
+        df: The pandas DataFrame to filter.
+        params: Dict with 'conditions' - a list of condition dicts, each with:
+                - 'column' (str): column name
+                - 'operator' (str): 'eq', 'gt', 'lt', 'gte', 'lte'
+                - 'value': the value to compare against
+
+    Returns:
+        dict: Contains 'conditions', 'matching_rows' count, and 'sample' (first 5 rows).
+              Returns {'error': str} if any column not found or invalid operator.
+
+    Example:
+        >>> df = pd.DataFrame({'hp': [100, 200, 150], 'wt': [2.5, 3.5, 2.8]})
+        >>> filter_multiple_conditions(df, {
+        ...     'conditions': [
+        ...         {'column': 'hp', 'operator': 'gt', 'value': 100},
+        ...         {'column': 'wt', 'operator': 'lt', 'value': 3.0}
+        ...     ]
+        ... })
+        {'conditions': [...], 'matching_rows': 1, 'sample': [...]}
+    """
+    conditions = params.get("conditions", [])
+    
+    if not conditions:
+        return {"error": "No conditions provided"}
+    
+    # Start with all rows
+    mask = pd.Series([True] * len(df), index=df.index)
+    
+    operators = {
+        "eq": lambda col, val: df[col] == val,
+        "gt": lambda col, val: df[col] > val,
+        "lt": lambda col, val: df[col] < val,
+        "gte": lambda col, val: df[col] >= val,
+        "lte": lambda col, val: df[col] <= val,
+    }
+    
+    for cond in conditions:
+        column = cond.get("column")
+        operator = cond.get("operator", "eq")
+        value = cond.get("value")
+        
+        if column not in df.columns:
+            return {"error": f"Column '{column}' not found"}
+        
+        if operator not in operators:
+            return {"error": f"Invalid operator '{operator}'. Use: eq, gt, lt, gte, lte"}
+        
+        mask = mask & operators[operator](column, value)
+    
+    filtered = df[mask]
+    
+    return {
+        "conditions": conditions,
+        "matching_rows": len(filtered),
+        "sample": filtered.head(5).to_dict(orient="records")
+    }
+
+
+def compute_column_ratio(df: pd.DataFrame, params: dict) -> dict:
+    """Compute the ratio between two columns and find max/min.
+
+    Divides numerator_column by denominator_column and returns statistics
+    about the computed ratio.
+
+    Args:
+        df: The pandas DataFrame to analyze.
+        params: Dict with:
+                - 'numerator_column' (str): column to use as numerator
+                - 'denominator_column' (str): column to use as denominator
+                - 'operation' (str, optional): 'max', 'min', 'mean' (default: 'max')
+
+    Returns:
+        dict: Contains 'numerator', 'denominator', 'operation', 'value' (the result),
+              and 'row' (the row with that value, for max/min).
+              Returns {'error': str} if columns not found.
+
+    Example:
+        >>> df = pd.DataFrame({'hp': [100, 200, 150], 'wt': [2.5, 4.0, 2.0]})
+        >>> compute_column_ratio(df, {
+        ...     'numerator_column': 'hp',
+        ...     'denominator_column': 'wt',
+        ...     'operation': 'max'
+        ... })
+        {'numerator': 'hp', 'denominator': 'wt', 'operation': 'max', 'value': 75.0, 'row': {...}}
+    """
+    numerator = params.get("numerator_column")
+    denominator = params.get("denominator_column")
+    operation = params.get("operation", "max")
+    
+    if numerator not in df.columns:
+        return {"error": f"Column '{numerator}' not found"}
+    if denominator not in df.columns:
+        return {"error": f"Column '{denominator}' not found"}
+    
+    # Compute the ratio
+    ratio = df[numerator] / df[denominator]
+    
+    if operation == "max":
+        idx = ratio.idxmax()
+        value = ratio[idx]
+    elif operation == "min":
+        idx = ratio.idxmin()
+        value = ratio[idx]
+    elif operation == "mean":
+        value = ratio.mean()
+        idx = None
+    else:
+        return {"error": f"Invalid operation '{operation}'. Use: max, min, mean"}
+    
+    result = {
+        "numerator": numerator,
+        "denominator": denominator,
+        "operation": operation,
+        "value": value,
+    }
+    
+    if idx is not None:
+        result["row"] = df.loc[idx].to_dict()
+    
+    return result
+
+
 # Registro de todas las funciones disponibles
 FUNCTIONS_REGISTRY = {
     "find_max_value_location": find_max_value_location,
@@ -752,6 +881,7 @@ FUNCTIONS_REGISTRY = {
     "get_value_counts": get_value_counts,
     "filter_by_value": filter_by_value,
     "filter_by_comparison": filter_by_comparison,
+    "filter_multiple_conditions": filter_multiple_conditions,
     "filter_and_aggregate": filter_and_aggregate,
     "group_aggregate": group_aggregate,
     "compare_columns": compare_columns,
@@ -763,4 +893,5 @@ FUNCTIONS_REGISTRY = {
     "get_bottom_n_rows": get_bottom_n_rows,
     "get_percentile": get_percentile,
     "search_value": search_value,
+    "compute_column_ratio": compute_column_ratio,
 }

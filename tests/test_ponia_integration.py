@@ -243,7 +243,13 @@ class TestFiltering:
         
         # Handle different response formats
         if isinstance(result, list):
-            result = result[-1]['result']
+            # Find the filter_by_value result
+            for r in result:
+                if r.get('function') == 'filter_by_value' and 'matching_rows' in r.get('result', {}):
+                    result = r['result']
+                    break
+            else:
+                result = result[-1] if isinstance(result[-1], dict) and 'result' not in result[-1] else result[-1].get('result', result[-1])
         
         assert result['matching_rows'] == expected
 

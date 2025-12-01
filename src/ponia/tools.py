@@ -452,5 +452,67 @@ TOOLS = [
                 "required": ["value"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "filter_multiple_conditions",
+            "description": "Filter rows using multiple AND conditions. Use this when you need to filter by more than one condition simultaneously, e.g., 'hp > 100 AND wt < 3.0'. All conditions must be satisfied.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "conditions": {
+                        "type": "array",
+                        "description": "List of conditions to apply (all must be true)",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "column": {
+                                    "type": "string",
+                                    "description": "Column name"
+                                },
+                                "operator": {
+                                    "type": "string",
+                                    "enum": ["eq", "gt", "lt", "gte", "lte"],
+                                    "description": "Comparison operator: eq (equal), gt (>), lt (<), gte (>=), lte (<=)"
+                                },
+                                "value": {
+                                    "type": ["string", "number"],
+                                    "description": "Value to compare against"
+                                }
+                            },
+                            "required": ["column", "operator", "value"]
+                        }
+                    }
+                },
+                "required": ["conditions"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compute_column_ratio",
+            "description": "Compute the ratio between two columns (numerator/denominator) and find the max, min, or mean of that ratio. Use for questions like 'which row has the maximum hp/wt ratio?' or 'what is the average of column A divided by column B?'",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "numerator_column": {
+                        "type": "string",
+                        "description": "Column to use as numerator"
+                    },
+                    "denominator_column": {
+                        "type": "string",
+                        "description": "Column to use as denominator"
+                    },
+                    "operation": {
+                        "type": "string",
+                        "enum": ["max", "min", "mean"],
+                        "description": "Operation to perform on the computed ratio (default: max)"
+                    }
+                },
+                "required": ["numerator_column", "denominator_column"]
+            }
+        }
     }
 ]
