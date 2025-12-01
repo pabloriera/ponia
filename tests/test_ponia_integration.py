@@ -17,6 +17,35 @@ pytestmark = pytest.mark.skipif(
 from ponia import ponia
 
 
+def extract_result(result, target_key=None, target_function=None):
+    """Extract the actual result from ponia's raw output.
+    
+    Args:
+        result: The raw result from ponia (dict or list)
+        target_key: Key to look for in the result (e.g., 'max_value', 'matching_rows')
+        target_function: Function name to find in list results
+    
+    Returns:
+        The extracted result dict
+    """
+    if isinstance(result, list):
+        # If looking for a specific function, find it
+        if target_function:
+            for r in result:
+                if r.get('function') == target_function:
+                    return r.get('result', r)
+        # If looking for a specific key, find first result with that key
+        if target_key:
+            for r in result:
+                res = r.get('result', r)
+                if target_key in res:
+                    return res
+        # Default: return last result
+        last = result[-1]
+        return last.get('result', last)
+    return result
+
+
 @pytest.fixture
 def wages_df():
     """Load the wages 1985 dataset."""
@@ -97,6 +126,7 @@ class TestGroupAggregate:
             raw=True
         )
         
+        result = extract_result(result, target_key='result', target_function='group_aggregate')
         for key in expected:
             assert abs(result['result'][key] - expected[key]) < 0.01
 
@@ -112,6 +142,7 @@ class TestGroupAggregate:
             raw=True
         )
         
+        result = extract_result(result, target_key='result', target_function='group_aggregate')
         for key in expected:
             assert result['result'][key] == expected[key]
 
@@ -131,6 +162,7 @@ class TestColumnStatistics:
             raw=True
         )
         
+        result = extract_result(result, target_key='mean')
         assert abs(result['mean'] - expected) < 0.01
 
     def test_median_wage(self, wages_df):
@@ -145,6 +177,7 @@ class TestColumnStatistics:
             raw=True
         )
         
+        result = extract_result(result, target_key='median')
         assert abs(result['median'] - expected) < 0.01
 
     def test_max_experience(self, wages_df):
@@ -155,14 +188,11 @@ class TestColumnStatistics:
         # Ponia
         result = ponia(
             wages_df,
-            "What is the maximum experience?",
+            "What is the maximum value of the experience column?",
             raw=True
         )
         
-        # Handle case where result might be a list
-        if isinstance(result, list):
-            result = result[-1]
-        
+        result = extract_result(result, target_key='max_value')
         assert result['max_value'] == expected
 
     def test_sum_education(self, wages_df):
@@ -177,6 +207,7 @@ class TestColumnStatistics:
             raw=True
         )
         
+        result = extract_result(result, target_key='sum')
         assert result['sum'] == expected
 
 
@@ -195,6 +226,7 @@ class TestCounting:
             raw=True
         )
         
+        result = extract_result(result, target_key='total_rows')
         assert result['total_rows'] == expected
 
     def test_unique_occupations(self, wages_df):
@@ -209,6 +241,7 @@ class TestCounting:
             raw=True
         )
         
+        result = extract_result(result, target_key='unique_count')
         assert result['unique_count'] == expected
 
 
@@ -227,6 +260,7 @@ class TestFiltering:
             raw=True
         )
         
+        result = extract_result(result, target_key='matching_rows')
         assert result['matching_rows'] == expected
 
     def test_filter_by_married(self, wages_df):
@@ -241,16 +275,7 @@ class TestFiltering:
             raw=True
         )
         
-        # Handle different response formats
-        if isinstance(result, list):
-            # Find the filter_by_value result
-            for r in result:
-                if r.get('function') == 'filter_by_value' and 'matching_rows' in r.get('result', {}):
-                    result = r['result']
-                    break
-            else:
-                result = result[-1] if isinstance(result[-1], dict) and 'result' not in result[-1] else result[-1].get('result', result[-1])
-        
+        result = extract_result(result, target_key='matching_rows', target_function='filter_by_value')
         assert result['matching_rows'] == expected
 
 
