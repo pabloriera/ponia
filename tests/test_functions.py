@@ -141,6 +141,32 @@ class TestFilterFunctions:
         result = filter_by_value(iris, {"column": "species", "value": "setosa"})
         assert result["matching_rows"] == 50
     
+    def test_filter_by_value_autocast_int(self, simple_df):
+        """Test that string value is autocast to int when filtering integer column."""
+        result = filter_by_value(simple_df, {"column": "edad", "value": "25"})
+        assert result["matching_rows"] == 1
+        assert result["value_casted"] is True
+        assert result["filter_value"] == 25  # Casted to int
+    
+    def test_filter_by_value_autocast_string(self):
+        """Test that numeric value is autocast to string when filtering string column."""
+        df = pd.DataFrame({"code": ["100", "200", "300"]})
+        result = filter_by_value(df, {"column": "code", "value": 200})
+        assert result["matching_rows"] == 1
+        assert result["value_casted"] is True
+        assert result["filter_value"] == "200"  # Casted to string
+    
+    def test_filter_by_value_autocast_disabled(self, simple_df):
+        """Test that autocast can be disabled."""
+        result = filter_by_value(simple_df, {"column": "edad", "value": "25", "autocast": False})
+        assert result["matching_rows"] == 0  # No match because "25" != 25
+        assert result["value_casted"] is False
+    
+    def test_filter_by_value_autocast_error(self, simple_df):
+        """Test that invalid cast returns an error."""
+        result = filter_by_value(simple_df, {"column": "edad", "value": "not_a_number"})
+        assert "error" in result
+
     def test_filter_by_comparison_gt(self, tips):
         result = filter_by_comparison(tips, {
             "column": "total_bill",

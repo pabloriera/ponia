@@ -304,30 +304,67 @@ def filter_by_value(df: pd.DataFrame, params: dict) -> dict:
 
     Args:
         df: The pandas DataFrame to filter.
-        params: Dict with 'column' (str) and 'value' (any) - the filter criteria.
+        params: Dict with:
+            - 'column' (str): the column name to filter by
+            - 'value' (any): the value to match
+            - 'autocast' (bool, optional): if True, attempt to cast value to column dtype.
+              Default is True.
 
     Returns:
         dict: Contains 'column', 'filter_value', 'matching_rows' count,
-              and 'sample' (first 5 matching rows as records).
-              Returns {'error': str} if column not found.
+              'sample' (first 5 matching rows as records), and 'value_casted' (bool).
+              Returns {'error': str} if column not found or cast fails.
 
     Example:
         >>> df = pd.DataFrame({'city': ['NY', 'LA', 'NY'], 'pop': [8, 4, 8]})
         >>> filter_by_value(df, {'column': 'city', 'value': 'NY'})
-        {'column': 'city', 'filter_value': 'NY', 'matching_rows': 2, 'sample': [...]}
+        {'column': 'city', 'filter_value': 'NY', 'matching_rows': 2, 'sample': [...], 'value_casted': False}
+        >>> df = pd.DataFrame({'count': [1, 2, 3]})
+        >>> filter_by_value(df, {'column': 'count', 'value': '2', 'autocast': True})
+        {'column': 'count', 'filter_value': 2, 'matching_rows': 1, 'sample': [...], 'value_casted': True}
     """
     column = params.get("column")
     value = params.get("value")
+    autocast = params.get("autocast", True)
 
     if column not in df.columns:
         return {"error": f"Column '{column}' not found"}
+
+    col_dtype = df[column].dtype
+    value_casted = False
+
+    # Check if type matches, attempt autocast if enabled
+    if autocast and value is not None:
+        try:
+            if pd.api.types.is_integer_dtype(col_dtype):
+                if not isinstance(value, int):
+                    value = int(value)
+                    value_casted = True
+            elif pd.api.types.is_float_dtype(col_dtype):
+                if not isinstance(value, float):
+                    value = float(value)
+                    value_casted = True
+            elif pd.api.types.is_bool_dtype(col_dtype):
+                if not isinstance(value, bool):
+                    if isinstance(value, str):
+                        value = value.lower() in ('true', '1', 'yes')
+                    else:
+                        value = bool(value)
+                    value_casted = True
+            elif pd.api.types.is_string_dtype(col_dtype) or col_dtype == object:
+                if not isinstance(value, str):
+                    value = str(value)
+                    value_casted = True
+        except (ValueError, TypeError) as e:
+            return {"error": f"Cannot cast value '{value}' to column dtype '{col_dtype}': {e}"}
 
     filtered = df[df[column] == value]
     return {
         "column": column,
         "filter_value": value,
         "matching_rows": len(filtered),
-        "sample": filtered.head(5).to_dict(orient="records")
+        "sample": filtered.head(5).to_dict(orient="records"),
+        "value_casted": value_casted
     }
 
 

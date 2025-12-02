@@ -196,7 +196,7 @@ TOOLS = [
         "type": "function",
         "function": {
             "name": "filter_by_value",
-            "description": "Filter rows where a column has a specific exact value.",
+            "description": "Filter rows where a column has a specific exact value. Automatically casts the value to match the column's data type by default.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -207,6 +207,10 @@ TOOLS = [
                     "value": {
                         "type": ["string", "number", "boolean"],
                         "description": "Exact value to search for"
+                    },
+                    "autocast": {
+                        "type": "boolean",
+                        "description": "If true, attempt to cast value to match column dtype (default: true)"
                     }
                 },
                 "required": ["column", "value"]
